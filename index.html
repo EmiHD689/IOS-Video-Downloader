@@ -222,13 +222,51 @@
   </div>
 
   <script>
+    var API_BASE = 'https://ios-video-downloader-api.onrender.com';
+
     var form = document.getElementById('downloadForm');
+    var statusEl = document.getElementById('statusMsg');
+    var urlInput = document.getElementById('videoUrl');
+
+    function showStatus(text) {
+      statusEl.textContent = text;
+      statusEl.classList.add('visible');
+    }
+
     if (form) {
       form.addEventListener('submit', function (e) {
         e.preventDefault();
-        var status = document.getElementById('statusMsg');
-        status.textContent = 'Diese Funktion braucht noch einen Server im Hintergrund, der hier noch nicht angeschlossen ist. Kommt bald.';
-        status.classList.add('visible');
+        var url = urlInput.value.trim();
+        if (!url) return;
+
+        var submitBtn = form.querySelector('button[type=submit]');
+        submitBtn.disabled = true;
+        showStatus('Suche Video... Falls der Server länger nicht genutzt wurde, kann das Aufwecken bis zu 60 Sekunden dauern.');
+
+        fetch(API_BASE + '/api/info', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: url })
+        })
+          .then(function (res) {
+            if (!res.ok) throw new Error('not-found');
+            return res.json();
+          })
+          .then(function (data) {
+            showStatus('Gefunden: "' + data.title + '". Download startet...');
+            var link = document.createElement('a');
+            link.href = API_BASE + '/api/download?url=' + encodeURIComponent(url);
+            link.rel = 'noopener';
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+          })
+          .catch(function () {
+            showStatus('Konnte das Video nicht finden. Prüfe den Link und versuch es erneut.');
+          })
+          .finally(function () {
+            submitBtn.disabled = false;
+          });
       });
     }
   </script>

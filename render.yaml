@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: ios-video-downloader-api
+    runtime: docker
+    plan: free
+    dockerfilePath: ./server/Dockerfile
+    dockerContext: ./server
+    envVars:
+      - key: PYTHONUNBUFFERED
+        value: "1"
