@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Downloader</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Downloader">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.json">
+<script>
+(function () {
+  var standalone = window.navigator.standalone === true ||
+    window.matchMedia('(display-mode: standalone)').matches;
+  document.documentElement.className = standalone ? 'is-app' : 'is-browser';
+})();
+</script>
+<style>
+  :root {
+    --grad-1: #7C3AED;
+    --grad-2: #5B6FE0;
+    --grad-3: #22D3C7;
+    --ink: #1a1033;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    min-height: 100%;
+    font-family: -apple-system, "SF Pro Rounded", ui-rounded, "Segoe UI", system-ui, sans-serif;
+    color: #fff;
+    background: var(--ink);
+  }
+  body {
+    min-height: 100vh;
+    padding: max(28px, env(safe-area-inset-top)) 20px max(28px, env(safe-area-inset-bottom));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow-x: hidden;
+    background:
+      radial-gradient(60% 50% at 15% 10%, rgba(124,58,237,0.55), transparent),
+      radial-gradient(55% 45% at 90% 15%, rgba(34,211,199,0.45), transparent),
+      radial-gradient(70% 60% at 50% 100%, rgba(91,111,224,0.5), transparent),
+      var(--ink);
+  }
+  .blob {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(60px);
+    opacity: 0.55;
+    z-index: 0;
+  }
+  .blob.b1 { width: 260px; height: 260px; background: var(--grad-1); top: -60px; left: -80px; }
+  .blob.b2 { width: 220px; height: 220px; background: var(--grad-3); bottom: -60px; right: -60px; }
+  .blob.b3 { width: 180px; height: 180px; background: var(--grad-2); top: 40%; right: -70px; }
+
+  .card {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 400px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    backdrop-filter: blur(20px);
+    border-radius: 28px;
+    padding: 32px 24px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+  }
+
+  .logo {
+    width: 64px;
+    height: 64px;
+    border-radius: 16px;
+    margin: 0 auto 18px;
+    display: block;
+    box-shadow: 0 10px 30px rgba(124,58,237,0.5);
+  }
+
+  h1 {
+    text-align: center;
+    font-size: 22px;
+    margin: 0 0 6px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+  }
+  p.sub {
+    text-align: center;
+    margin: 0 0 28px;
+    color: rgba(255,255,255,0.7);
+    font-size: 14px;
+  }
+
+  /* --- Guide view --- */
+  .steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 18px; }
+  .step { display: flex; align-items: center; gap: 14px; }
+  .step-icon {
+    flex: none;
+    width: 44px; height: 44px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, var(--grad-1), var(--grad-3));
+    display: flex; align-items: center; justify-content: center;
+  }
+  .step-icon svg { width: 22px; height: 22px; }
+  .step-num {
+    flex: none;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.15);
+    font-size: 12px;
+    font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .step-text { font-size: 15px; line-height: 1.35; }
+  .step-text b { display: block; font-size: 15px; }
+  .step-text span { color: rgba(255,255,255,0.65); font-size: 13px; }
+
+  /* --- App view --- */
+  form { display: flex; flex-direction: column; gap: 12px; }
+  input[type=url] {
+    width: 100%;
+    padding: 16px 18px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,0.2);
+    background: rgba(255,255,255,0.1);
+    color: #fff;
+    font-size: 15px;
+    outline: none;
+  }
+  input[type=url]::placeholder { color: rgba(255,255,255,0.5); }
+  button {
+    border: none;
+    padding: 16px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, var(--grad-1), var(--grad-3));
+    color: #fff;
+    font-size: 16px;
+    font-weight: 800;
+    cursor: pointer;
+  }
+  button:active { transform: scale(0.98); }
+  .status {
+    margin-top: 16px;
+    padding: 14px 16px;
+    border-radius: 16px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    font-size: 13px;
+    line-height: 1.4;
+    color: rgba(255,255,255,0.85);
+    display: none;
+  }
+  .status.visible { display: block; }
+
+  .guide-view, .app-view { display: none; }
+  html.is-browser .guide-view { display: block; }
+  html.is-app .app-view { display: block; }
+</style>
+</head>
+<body>
+  <div class="blob b1"></div>
+  <div class="blob b2"></div>
+  <div class="blob b3"></div>
+
+  <div class="card">
+    <img class="logo" src="icon.svg" alt="">
+
+    <div class="guide-view">
+      <h1>Zum Home-Bildschirm hinzufügen</h1>
+      <p class="sub">So richtest du den Downloader als App auf deinem iPhone ein</p>
+      <ol class="steps">
+        <li class="step">
+          <div class="step-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="5" y="10" width="14" height="10" rx="2"/>
+              <path d="M12 14V3"/>
+              <path d="M8 7l4-4 4 4"/>
+            </svg>
+          </div>
+          <div class="step-text">
+            <b>Tippe auf "Teilen"</b>
+            <span>Unten in der Safari-Symbolleiste</span>
+          </div>
+        </li>
+        <li class="step">
+          <div class="step-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="4" y="4" width="16" height="16" rx="4"/>
+              <path d="M12 8v8M8 12h8"/>
+            </svg>
+          </div>
+          <div class="step-text">
+            <b>"Zum Home-Bildschirm"</b>
+            <span>Im Menü nach unten scrollen</span>
+          </div>
+        </li>
+        <li class="step">
+          <div class="step-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="9"/>
+              <path d="M8 12l3 3 5-6"/>
+            </svg>
+          </div>
+          <div class="step-text">
+            <b>"Hinzufügen" bestätigen</b>
+            <span>Danach öffnest du die App über das neue Icon</span>
+          </div>
+        </li>
+      </ol>
+    </div>
+
+    <div class="app-view">
+      <h1>Downloader</h1>
+      <p class="sub">Link einfügen und loslegen</p>
+      <form id="downloadForm">
+        <input type="url" id="videoUrl" placeholder="TikTok, YouTube, Instagram, Facebook Link" required>
+        <button type="submit">Download</button>
+      </form>
+      <div class="status" id="statusMsg"></div>
+    </div>
+  </div>
+
+  <script>
+    var form = document.getElementById('downloadForm');
+    if (form) {
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var status = document.getElementById('statusMsg');
+        status.textContent = 'Diese Funktion braucht noch einen Server im Hintergrund, der hier noch nicht angeschlossen ist. Kommt bald.';
+        status.classList.add('visible');
+      });
+    }
+  </script>
+</body>
+</html>
