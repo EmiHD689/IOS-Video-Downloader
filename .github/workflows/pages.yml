@@ -30,6 +30,8 @@ jobs:
           convert -background none icon.svg -resize 180x180 apple-touch-icon.png
 
       - uses: actions/configure-pages@v5
+        with:
+          enablement: true
 
       - uses: actions/upload-pages-artifact@v3
         with:
